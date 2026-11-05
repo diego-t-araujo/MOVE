@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Análisis electoral · Evaluación retrospectiva 2020</title>
+<style>
+/* ============================================================
+   VARIABLES DE DISEÑO (provisorias, fáciles de adaptar)
+   Cambiar colores, tipografía y espaciados solo acá.
+   ============================================================ */
+:root{
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --bg:#f7f7f4;
+  --surface:#ffffff;
+  --ink:#18212b;
+  --muted:#566170;
+  --line:#d9dee4;
+  --accent:#1d4f7c;        /* color de acento */
+  --accent-2:#4a7399;      /* variante más clara del acento */
+  --accent-soft:#e5edf5;   /* fondo suave del acento */
+  --ref-fill:#2b3441;      /* relleno de la regla histórica (referencia) */
+  --track:#eceff3;
+  --note-bg:#f3efe6;
+  --focus:#0b5cad;
+  --radius:10px;
+  --space:clamp(2.25rem,6vw,4rem);
+  --maxw:1040px;
+  /* Colores de partidos: reservados, separados de los de desempeño.
+     No se usan en esta versión porque no hay datos por partido. */
+  --party-rep:#b3261e;
+  --party-dem:#1f5fbf;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--font);font-size:1rem;line-height:1.6;color:var(--ink);background:var(--bg)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.25rem}
+h1,h2,h3{line-height:1.2;margin:0 0 .6rem}
+h1{font-size:clamp(1.65rem,4.2vw,2.4rem);letter-spacing:-.01em}
+h2{font-size:clamp(1.3rem,3vw,1.65rem)}
+h3{font-size:1.05rem}
+p{margin:0 0 .8rem}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:0;background:var(--surface);padding:.5rem 1rem;z-index:100}
+.skip:focus{left:.5rem;top:.5rem}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+
+/* Navegación */
+.topnav{position:sticky;top:0;z-index:20;background:rgba(247,247,244,.96);border-bottom:1px solid var(--line)}
+.topnav ul{list-style:none;margin:0;padding:.5rem 1.25rem;display:flex;gap:.25rem 1rem;flex-wrap:wrap;max-width:var(--maxw);margin:0 auto}
+.topnav a{display:inline-block;padding:.25rem .15rem;text-decoration:none;color:var(--ink);font-size:.92rem;border-bottom:2px solid transparent}
+.topnav a:hover{border-bottom-color:var(--accent)}
+
+section{padding:var(--space) 0 0;scroll-margin-top:3.2rem}
+.eyebrow{font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:.8rem}
+.lead{font-size:1.12rem;max-width:62ch}
+
+/* Tarjetas */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:1.1rem 1.2rem}
+.callout{background:var(--surface);border-left:6px solid var(--accent);border-radius:var(--radius);padding:1.1rem 1.3rem;margin:1.2rem 0;box-shadow:0 0 0 1px var(--line) inset}
+.callout strong.k{display:block;font-size:.8rem;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-bottom:.25rem}
+.note{background:var(--note-bg);border:1px solid #e1d9c6;border-radius:var(--radius);padding:.75rem 1rem;font-size:.95rem}
+.note::before{content:"Nota · ";font-weight:700}
+
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1.2rem 0}
+.mcard{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--surface);border:2px solid var(--line);border-radius:var(--radius);padding:1rem 1.1rem;cursor:pointer}
+.mcard:hover{border-color:var(--accent-2)}
+.mcard[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.mcard .tag{display:block;font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.mcard .name{display:block;font-weight:600;margin:.2rem 0}
+.mcard .big{display:block;font-size:2.1rem;font-weight:800;line-height:1.1;color:var(--ink)}
+.mcard .diff{display:block;font-size:.95rem;margin-top:.3rem}
+.mcard .sel{display:none;font-size:.8rem;font-weight:700;color:var(--accent);margin-top:.4rem}
+.mcard[aria-pressed="true"] .sel{display:block}
+
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0}
+.tiers .card h3{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem}
+.tiers .card p{margin:0;font-weight:600}
+
+/* Gráfico de barras */
+.chart{margin:1rem 0}
+.mrow{display:grid;grid-template-columns:minmax(150px,210px) 1fr minmax(95px,130px);gap:.75rem;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:2px solid transparent;border-radius:8px;padding:.45rem .5rem;cursor:pointer;margin-bottom:.25rem}
+.mrow:hover{background:#f0f3f7}
+.mrow[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.mrow .lbl{font-weight:600;font-size:.95rem}
+.mrow .lbl small{display:block;font-weight:400;color:var(--muted)}
+.track{position:relative;display:block;height:36px;background:var(--track);border-radius:6px}
+.track::after{content:"";position:absolute;left:var(--ref);top:-5px;bottom:-5px;border-left:2px dashed var(--ink)}
+.bar{display:flex;height:100%;align-items:center;justify-content:flex-end;padding-right:.6rem;border-radius:6px;color:#fff;font-weight:700}
+.bar.ref{background:var(--ref-fill)}
+.bar.m1{background:var(--accent)}
+.bar.m2{background:var(--accent-2)}
+.mrow .dif{font-weight:700;font-size:.95rem}
+.axis{display:grid;grid-template-columns:minmax(150px,210px) 1fr minmax(95px,130px);gap:.75rem;padding:0 .5rem}
+.axis .ticks{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.legend{font-size:.9rem;color:var(--muted);margin:.6rem 0 0}
+.legend .dash{display:inline-block;width:0;height:.9em;border-left:2px dashed var(--ink);vertical-align:middle;margin-right:.35rem}
+
+.detail{margin:1rem 0}
+.detail dl{margin:0;display:grid;grid-template-columns:140px 1fr;gap:.5rem 1rem}
+.detail dt{font-weight:700;color:var(--accent)}
+.detail dd{margin:0}
+
+/* Tablas */
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+caption{text-align:left;font-weight:700;padding:.3rem 0 .5rem}
+th,td{border:1px solid var(--line);padding:.5rem .65rem;text-align:left;vertical-align:top}
+thead th{background:#eef1f5}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;margin:.8rem 0}
+
+/* Detalles / acordeones */
+details{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:.15rem 1rem;margin:.7rem 0}
+summary{cursor:pointer;font-weight:600;padding:.65rem 0}
+details[open] > summary{border-bottom:1px solid var(--line);margin-bottom:.7rem}
+details p:last-child{margin-bottom:.8rem}
+
+/* Controles */
+.seg{display:inline-flex;border:2px solid var(--accent);border-radius:8px;overflow:hidden;margin:.3rem 0 .8rem}
+.seg button{font:inherit;background:var(--surface);color:var(--accent);border:0;padding:.45rem .9rem;cursor:pointer;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.seg button + button{border-left:2px solid var(--accent)}
+
+/* Cambios de partido */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin:1rem 0}
+.kpi .n{display:block;font-size:2rem;font-weight:800;line-height:1.1}
+.kpi .t{display:block;font-weight:600}
+.kpi .s{display:block;font-size:.88rem;color:var(--muted)}
+.matrix td{text-align:center;vertical-align:middle;height:92px}
+.matrix td .v{display:block;font-size:1.7rem;font-weight:800;line-height:1.1}
+.matrix td .l{display:block;font-size:.85rem}
+.matrix td .d{display:block;font-size:.8rem;color:var(--muted)}
+.matrix .ok{background:var(--accent-soft)}
+.matrix .err{background:repeating-linear-gradient(45deg,#fff,#fff 6px,#e9ecf0 6px,#e9ecf0 12px)}
+.matrix th[scope=row]{white-space:nowrap}
+.matrix .tot{background:#f6f7f9;font-weight:600;text-align:center}
+.errbars{margin:1rem 0}
+.erow{display:grid;grid-template-columns:minmax(150px,210px) 1fr 90px;gap:.75rem;align-items:center;margin:.55rem 0}
+.erow .lbl{font-weight:600;font-size:.95rem}
+.etrack{display:flex;height:40px;background:var(--track);border-radius:6px;overflow:hidden}
+.seg-m{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden}
+.seg-m.hist{background:var(--ref-fill)}
+.seg-m.fn{background:var(--accent)}
+.seg-m.fp{background:repeating-linear-gradient(45deg,var(--accent-2),var(--accent-2) 7px,#33597d 7px,#33597d 14px)}
+.eleg{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem;font-size:.9rem;color:var(--muted)}
+.eleg i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:.35rem}
+
+/* Listas y columnas */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+ul.clean{margin:.2rem 0 0;padding-left:1.2rem}
+ul.clean li{margin:.3rem 0}
+.limits{columns:2;column-gap:2rem;padding-left:1.2rem;margin:.5rem 0}
+.limits li{break-inside:avoid;margin:.4rem 0}
+.timeline{list-style:none;padding:0;margin:.4rem 0;display:grid;gap:.4rem}
+.timeline li{padding-left:1rem;border-left:4px solid var(--accent-2)}
+
+footer{margin-top:var(--space);padding:1.5rem 0 3rem;border-top:1px solid var(--line);font-size:.88rem;color:var(--muted)}
+
+@media (max-width:760px){
+  .cards3,.tiers,.two{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr 1fr}
+  .limits{columns:1}
+  .detail dl{grid-template-columns:1fr}
+  .mrow{grid-template-columns:1fr;gap:.35rem}
+  .axis{grid-template-columns:1fr}
+  .axis > span{display:none}
+  .erow{grid-template-columns:1fr;gap:.25rem}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+@media print{
+  body{background:#fff;font-size:11pt}
+  .topnav,.seg,.skip{display:none}
+  section{padding-top:1.4rem;break-inside:avoid-page}
+  .mrow,.mcard{border-color:#999;cursor:default}
+  a{color:inherit;text-decoration:none}
+  details{break-inside:avoid}
+  .bar,.seg-m,.matrix .ok,.matrix .err,.note,.callout{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#resumen">Saltar al contenido</a>
+
+<nav class="topnav" aria-label="Secciones del informe">
+  <ul>
+    <li><a href="#resumen">Resumen</a></li>
+    <li><a href="#metodos">Comparación de métodos</a></li>
+    <li><a href="#cambios">Cambios de partido</a></li>
+    <li><a href="#sociodemografia">Sociodemografía</a></li>
+    <li><a href="#alcance">Alcance y límites</a></li>
+    <li><a href="#recomendacion">Recomendación</a></li>
+  </ul>
+</nav>
+
+<main class="wrap" id="top">
+<noscript><p class="note">Este informe necesita JavaScript para mostrar los gráficos y tablas. Las cifras están en el objeto de datos del código fuente.</p></noscript>
+
+<!-- A. ENCABEZADO Y RESUMEN EJECUTIVO -->
+<section id="resumen" style="padding-top:2rem">
+  <div class="eyebrow">Análisis electoral · Evaluación retrospectiva 2020</div>
+  <h1>¿Cuánto aporta la sociodemografía para anticipar el ganador por condado?</h1>
+
+  <div class="callout" role="note">
+    <strong class="k">Recomendación principal</strong>
+    <p class="lead" style="margin:0">En los condados evaluados en 2020, repetir el ganador de la elección anterior fue más efectivo para clasificar el partido ganador que los modelos basados exclusivamente en variables sociodemográficas.</p>
+  </div>
+
+  <p class="muted small" style="margin-bottom:.4rem">Tocá una tarjeta para destacar un método y ver su diferencia frente a la regla histórica (porcentaje de acierto sobre los condados evaluados).</p>
+  <div class="cards3" id="heroCards" role="group" aria-label="Seleccionar método"></div>
+
+  <p class="note">Evaluación sobre 429 condados; cobertura no representativa de todo Estados Unidos. No es una predicción del ganador presidencial nacional, del voto popular ni del Colegio Electoral.</p>
+
+  <div class="tiers" aria-label="Tres niveles de evidencia">
+    <div class="card"><h3>Mejor método observado</h3><p>Regla histórica: repetir el ganador de 2016</p></div>
+    <div class="card"><h3>Mejor modelo sociodemográfico</h3><p>Random forest</p></div>
+    <div class="card"><h3>Posibles mejoras futuras</h3><p>Extensiones todavía no validadas</p></div>
+  </div>
+
+  <details id="contexto">
+    <summary>Contexto del ejercicio y procedimiento</summary>
+    <p>El ejercicio plantea una situación ficticia ubicada en octubre de 2020: un cliente quiere anticipar qué partido ganará la elección presidencial en distintos condados usando variables sociodemográficas. Este informe es una evaluación retrospectiva: compara esas predicciones con los resultados observados en 2020.</p>
+    <ul class="clean" id="ctxList"></ul>
+    <p class="small muted" style="margin-top:.7rem">Referencias sin aprendizaje automático: clase mayoritaria y repetición del ganador anterior. El resultado de la clase mayoritaria no fue proporcionado, por eso no se muestra.</p>
+  </details>
+</section>
+
+<!-- B. COMPARACIÓN DE MÉTODOS -->
+<section id="metodos">
+  <div class="eyebrow">Comparación de métodos</div>
+  <h2>Repetir el ganador anterior acertó más que los modelos sociodemográficos</h2>
+  <p>Porcentaje de condados en que cada método clasificó correctamente al partido ganador en 2020 (429 condados). La línea punteada marca la regla histórica, que es la referencia de la comparación.</p>
+
+  <div class="chart" id="chart" role="group" aria-label="Acierto por método. Seleccionar para destacar"></div>
+  <p class="legend"><span class="dash"></span>Línea punteada: regla histórica. Las diferencias se expresan en puntos porcentuales (pp) frente a esa regla.</p>
+
+  <div class="card detail" id="detail" aria-live="polite"></div>
+
+  <div class="tablewrap"><table id="tblAcc"></table></div>
+
+  <h3 style="margin-top:1.6rem">Panel secundario: Brier y AUC</h3>
+  <p class="muted small">Datos no informados figuran como tales; no se completaron ni estimaron.</p>
+  <div class="tablewrap"><table id="tblAux"></table></div>
+
+  <details>
+    <summary>¿Qué mide cada métrica?</summary>
+    <div id="metricDefs"></div>
+  </details>
+</section>
+
+<!-- C. CAMBIOS DE PARTIDO -->
+<section id="cambios">
+  <div class="eyebrow">Cambios de partido</div>
+  <h2>Detectar cambios tiene un costo</h2>
+  <p id="changeIntro"></p>
+
+  <div class="kpis" id="kpis"></div>
+
+  <h3>Matriz de detección de cambios (random forest)</h3>
+  <p class="small muted">Se interpreta como alerta de cambio toda predicción distinta del ganador de 2016. La matriz describe detección de cambios, no directamente la clasificación demócrata/republicano.</p>
+  <div class="seg" role="group" aria-label="Formato de la matriz">
+    <button type="button" data-mode="counts" aria-pressed="true">Conteos</button>
+    <button type="button" data-mode="pct" aria-pressed="false">% del total evaluado</button>
+  </div>
+  <div class="tablewrap"><table class="matrix" id="matrix"></table></div>
+  <p class="small muted" id="matrixDenom"></p>
+
+  <h3 style="margin-top:1.6rem">Errores frente a la regla histórica</h3>
+  <div class="errbars" id="errbars"></div>
+  <div class="eleg" id="eleg"></div>
+  <div class="callout" id="changeMsg" role="note"></div>
+</section>
+
+<!-- D. SOCIODEMOGRAFÍA -->
+<section id="sociodemografia">
+  <div class="eyebrow">Qué aporta la sociodemografía</div>
+  <h2>Hay señal, pero no alcanzó para superar a la persistencia</h2>
+  <div class="card">
+    <ul class="clean" id="sociList"></ul>
+  </div>
+  <p class="small muted" style="margin-top:.7rem">Esta sección es cualitativa a propósito: no se proporcionaron tablas de importancia, coeficientes, odds ratios ni contribuciones por bloque, y por eso no se grafican.</p>
+</section>
+
+<!-- E. ALCANCE Y LIMITACIONES -->
+<section id="alcance">
+  <div class="eyebrow">Alcance y limitaciones</div>
+  <h2>Dónde puede usarse esta evidencia y dónde no</h2>
+  <div class="card"><ul class="limits" id="limits"></ul></div>
+</section>
+
+<!-- F. RECOMENDACIÓN -->
+<section id="recomendacion">
+  <div class="eyebrow">Recomendación al cliente</div>
+  <h2>Qué hacer con la evidencia actual</h2>
+  <div class="two">
+    <div class="card">
+      <h3>Qué recomendamos con la evidencia actual</h3>
+      <ul class="clean" id="recNow"></ul>
+    </div>
+    <div class="card">
+      <h3>Qué estudiar después</h3>
+      <ul class="clean" id="recNext"></ul>
+      <p class="small muted" style="margin-top:.7rem">Son líneas de trabajo, no mejoras ya demostradas.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p id="footSource"></p>
+  <p>Diseño provisorio: paleta, tipografía y espaciados están centralizados en variables CSS al inicio del archivo para adaptarlos a la identidad visual del cliente. Este informe no reproduce ninguna identidad oficial.</p>
+</footer>
+</main>
+
+<script>
+/* ============================================================
+   DATOS (única fuente de cifras del informe)
+   Resultados agregados proporcionados por el analista.
+   No fueron verificados contra el notebook ni los datos originales.
+   Para sumar análisis futuros, completar los campos `null` o
+   agregar claves nuevas (ver `pendientes`) y renderizarlas.
+   ============================================================ */
+const DATA = {
+  meta: {
+    escenario: "Octubre de 2020 (situación ficticia)",
+    fuente: "Kaggle, «US Census and Election Results 2000–2020»",
+    unidad: "condado-año electoral",
+    objetivo: "winner (1 = republicano, 0 = demócrata)",
+    observaciones: 1662,
+    condadosHistoricos: 474,
+    anios: [2008, 2012, 2016, 2020],
+    condadosEvaluados2020: 429
+  },
+  referenciaId: "hist",
+  metodos: [
+    { id: "hist",  nombre: "Regla histórica", detalle: "Repetir el ganador de 2016", tag: "Mejor desempeño observado",
+      accuracy: 93.2, brier: 0.068, auc: null, tipo: "ref" },
+    { id: "rf",    nombre: "Random forest", detalle: "Solo variables sociodemográficas", tag: "Mejor modelo sociodemográfico",
+      accuracy: 89.3, brier: 0.107, auc: 0.950, tipo: "m1" },
+    { id: "logit", nombre: "Regresión logística", detalle: "Regularizada, solo variables sociodemográficas", tag: "Modelo sociodemográfico",
+      accuracy: 81.6, brier: null, auc: null, tipo: "m2" }
+  ],
+  cambios: {
+    evaluados: 429,
+    conservaron: 400,
+    cambiaron: 29,
+    alertas: 55,
+    detectados: 19,        // verdaderos positivos
+    falsasAlarmas: 36,     // falsos positivos
+    noDetectados: 10,      // falsos negativos
+    estables: 364,         // verdaderos negativos
+    erroresHist: 29,
+    erroresRF: 46
+  },
+  ctx: [
+    "Unidad de observación: condado-año electoral. Base depurada: 1.662 observaciones; 474 condados distintos en el conjunto histórico.",
+    "Años electorales utilizados: 2008, 2012, 2016 y 2020.",
+    "Entrenamiento inicial 2008–2012; validación temporal en 2016; reentrenamiento final con 2008–2016; prueba final en 2020 (429 condados).",
+    "Modelos: regresión logística regularizada y random forest.",
+    "Los modelos sociodemográficos no incluyen el ganador ni el margen electoral anterior como predictores."
+  ],
+  definiciones: [
+    { t: "Accuracy (acierto)", d: "Porcentaje de condados en que el método clasificó bien al partido ganador. Es la medida principal de este informe." },
+    { t: "Brier", d: "Error cuadrático medio de las probabilidades asignadas: menor es mejor. En la regla histórica se calculó asignando probabilidad 0 o 1 al partido predicho; es una referencia determinista, no una estimación histórica de probabilidades." },
+    { t: "AUC", d: "Mide qué tan bien el modelo ordena a los condados por probabilidad de ser republicanos. No es lo mismo que el acierto: un buen ordenamiento no garantiza mayor acierto al convertir las probabilidades en una clasificación." },
+    { t: "Punto porcentual (pp)", d: "Diferencia aritmética entre dos porcentajes. Pasar de 93,2% a 89,3% es una baja de 3,9 pp, no de 3,9%." }
+  ],
+  socio: [
+    "El estado civil y el empleo destacaron en el análisis por bloques de variables.",
+    "Las asociaciones corresponden a condados, no a individuos: no permiten saber cómo votó ninguna persona ni ningún grupo.",
+    "Las contribuciones predictivas no demuestran causalidad.",
+    "La extensión económica ensayada no mostró una mejora predictiva estable. Eso no refuta que la economía influya en el voto: solo indica que, en este ejercicio, no mejoró la predicción de manera estable.",
+    "Con los resultados agregados disponibles no es posible presentar un ranking completo de variables."
+  ],
+  limites: [
+    "La evaluación final contiene 429 condados.",
+    "Los 474 condados corresponden a la cobertura histórica acumulada, no a la prueba de 2020.",
+    "La cobertura se concentra en áreas urbanas y deja cinco estados sin representación.",
+    "No corresponde extrapolar automáticamente al conjunto del país.",
+    "La evidencia temporal es limitada: validación en 2016 y prueba final en 2020.",
+    "Las variables sociodemográficas no capturan por sí solas todo el contexto de una elección.",
+    "No se incorporó el resultado electoral previo como predictor en los modelos de aprendizaje automático.",
+    "Cualquier ajuste motivado por observar 2020 debe tratarse como exploratorio."
+  ],
+  recomendacionActual: [
+    "Para clasificar el ganador en los condados evaluados, los resultados favorecen la regla histórica.",
+    "Entre los modelos sociodemográficos, el random forest obtuvo el mejor desempeño.",
+    "No se demostró una mejora de estos modelos frente a la persistencia."
+  ],
+  recomendacionFutura: [
+    "Incorporar el margen electoral anterior.",
+    "Evaluar su aporte combinado con variables sociodemográficas.",
+    "Mejorar y validar la calibración con información anterior a la prueba.",
+    "Evaluar las alertas de cambio según el costo de las falsas alarmas y de los cambios no detectados."
+  ],
+  /* Archivos que permitirían ampliar el informe (aún no proporcionados):
+     - predicciones por condado (id, estado, año, y, p, predicción) → mapas, filtros, calibración y ROC
+     - tabla de importancia por permutación / coeficientes → panel de variables
+     - aporte por bloques de variables → panel específico
+     - métricas de la regresión logística (Brier, AUC) y de clase mayoritaria */
+  pendientes: { individuales: null, importancias: null, bloques: null }
+};
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+const state = { selected: "rf", mode: "counts" };
+const $ = (id) => document.getElementById(id);
+const fmt1 = (n) => (Math.round(n * 10) / 10).toFixed(1).replace(".", ",");
+const fmt3 = (n) => n.toFixed(3).replace(".", ",");
+const fmtPP = (n) => {
+  const r = Math.round(n * 10) / 10;
+  return (r > 0 ? "+" : r < 0 ? "−" : "") + fmt1(Math.abs(r)) + " pp";
+};
+const pct = (num, den) => fmt1((num / den) * 100) + "%";
+const ref = () => DATA.metodos.find((m) => m.id === DATA.referenciaId);
+const rf = () => DATA.metodos.find((m) => m.id === "rf");
+const byId = (id) => DATA.metodos.find((m) => m.id === id);
+const li = (arr) => arr.map((t) => `<li>${t}</li>`).join("");
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function diffVsRef(m) { return m.accuracy - ref().accuracy; }
+
+function renderHero() {
+  $("heroCards").innerHTML = DATA.metodos.map((m) => {
+    const dif = m.id === DATA.referenciaId
+      ? "Referencia de la comparación"
+      : `${fmtPP(diffVsRef(m))} frente a la regla histórica`;
+    return `<button type="button" class="mcard" data-method="${m.id}" aria-pressed="${state.selected === m.id}">
+      <span class="tag">${m.tag}</span>
+      <span class="name">${m.nombre}</span>
+      <span class="big">${fmt1(m.accuracy)}%</span>
+      <span class="diff">${dif}</span>
+      <span class="sel">● Método seleccionado</span>
+    </button>`;
+  }).join("");
+}
+
+function renderChart() {
+  const r = ref().accuracy;
+  const rows = DATA.metodos.map((m) => {
+    const dif = m.id === DATA.referenciaId ? "Referencia" : fmtPP(diffVsRef(m));
+    return `<button type="button" class="mrow" data-method="${m.id}" aria-pressed="${state.selected === m.id}"
+        aria-label="${m.nombre}: ${fmt1(m.accuracy)}% de acierto. ${m.id === DATA.referenciaId ? "Es la referencia." : dif + " frente a la regla histórica."}">
+      <span class="lbl">${m.nombre}<small>${m.detalle}</small></span>
+      <span class="track" style="--ref:${r}%"><span class="bar ${m.tipo}" style="width:${m.accuracy}%">${fmt1(m.accuracy)}%</span></span>
+      <span class="dif">${dif}</span>
+    </button>`;
+  }).join("");
+  const axis = `<div class="axis" aria-hidden="true"><span></span>
+      <div class="ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div><span></span></div>`;
+  $("chart").innerHTML = rows + axis;
+}
+
+function interpretacion(id) {
+  if (id === "hist") return "Sin usar aprendizaje automático, fue el método que mejor clasificó el ganador. Solo falla en los condados que cambiaron de partido.";
+  if (id === "rf") return "Identifica algunos cambios de partido, pero sus falsas alarmas reducen el acierto total.";
+  return "Fue el de menor acierto entre los métodos evaluados. No se informaron su Brier ni su AUC.";
+}
+
+function renderDetail() {
+  const m = byId(state.selected);
+  const n = DATA.cambios.evaluados;
+  let resultado = `${fmt1(m.accuracy)}% de acierto sobre ${n} condados`;
+  if (m.id === "hist") resultado += ` (${DATA.cambios.erroresHist} errores)`;
+  if (m.id === "rf") resultado += ` (${DATA.cambios.erroresRF} errores)`;
+  let comp;
+  if (m.id === "hist") {
+    comp = `Es el método de referencia. Frente a él, el random forest queda ${fmtPP(diffVsRef(rf()))} y la logística ${fmtPP(diffVsRef(byId("logit")))}.`;
+  } else if (m.id === "rf") {
+    comp = `${fmtPP(diffVsRef(m))} frente a la regla histórica y ${fmtPP(m.accuracy - byId("logit").accuracy)} frente a la regresión logística.`;
+  } else {
+    comp = `${fmtPP(diffVsRef(m))} frente a la regla histórica y ${fmtPP(m.accuracy - rf().accuracy)} frente al random forest.`;
+  }
+  $("detail").innerHTML = `<h3>${m.nombre} · ${m.detalle}</h3>
+    <dl>
+      <dt>Resultado</dt><dd>${resultado}.</dd>
+      <dt>Comparación</dt><dd>${comp}</dd>
+      <dt>Interpretación</dt><dd>${interpretacion(m.id)}</dd>
+    </dl>`;
+}
+
+function renderTables() {
+  const h = byId("hist"), r = rf(), l = byId("logit");
+  const cell = (m, other) => m.id === other.id ? "—" : fmtPP(m.accuracy - other.accuracy);
+  $("tblAcc").innerHTML = `<caption>Acierto en 2020 por método (429 condados). Diferencias en puntos porcentuales.</caption>
+    <thead><tr><th scope="col">Método</th><th scope="col" class="num">Accuracy</th>
+      <th scope="col" class="num">Frente a regla histórica</th><th scope="col" class="num">Frente a random forest</th></tr></thead>
+    <tbody>${DATA.metodos.map((m) => `<tr><th scope="row">${m.nombre}</th>
+      <td class="num">${fmt1(m.accuracy)}%</td>
+      <td class="num">${m.id === h.id ? "Referencia" : fmtPP(m.accuracy - h.accuracy)}</td>
+      <td class="num">${cell(m, r)}</td></tr>`).join("")}</tbody>`;
+
+  const nd = '<span class="muted">No informado</span>';
+  $("tblAux").innerHTML = `<caption>Medidas probabilísticas en 2020</caption>
+    <thead><tr><th scope="col">Método</th><th scope="col" class="num">Brier (menor es mejor)</th><th scope="col" class="num">AUC</th></tr></thead>
+    <tbody>${DATA.metodos.map((m) => `<tr><th scope="row">${m.nombre}${m.id === "hist" ? " *" : ""}</th>
+      <td class="num">${m.brier == null ? nd : fmt3(m.brier)}</td>
+      <td class="num">${m.auc == null ? nd : fmt3(m.auc)}</td></tr>`).join("")}</tbody>
+    <tfoot><tr><td colspan="3" class="small muted">* Brier de la regla histórica: se calculó asignando probabilidades de 0 y 1 al partido predicho. Es una referencia determinista, no una estimación histórica de probabilidades.
+      Brier del random forest frente a la regla histórica: ${(r.brier - h.brier >= 0 ? "+" : "−") + fmt3(Math.abs(r.brier - h.brier))} (mayor error probabilístico).</td></tr></tfoot>`;
+
+  $("metricDefs").innerHTML = DATA.definiciones.map((d) => `<p><strong>${d.t}.</strong> ${d.d}</p>`).join("");
+}
+
+function renderChanges() {
+  const c = DATA.cambios;
+  $("changeIntro").textContent =
+    `De ${c.evaluados} condados evaluados, ${c.conservaron} conservaron el ganador de 2016 y ${c.cambiaron} cambiaron de partido (${pct(c.cambiaron, c.evaluados)}). ` +
+    `Un modelo que intenta anticipar esos cambios también puede equivocarse al alertar de cambios que no ocurren.`;
+
+  $("kpis").innerHTML = [
+    { n: c.cambiaron, t: "Cambios reales", s: `${pct(c.cambiaron, c.evaluados)} de ${c.evaluados} condados` },
+    { n: c.detectados, t: "Cambios detectados", s: `${c.detectados} de ${c.cambiaron} cambios · sensibilidad ${pct(c.detectados, c.cambiaron)}` },
+    { n: c.falsasAlarmas, t: "Falsas alarmas", s: `${c.falsasAlarmas} de ${c.alertas} alertas · precisión de las alertas ${pct(c.detectados, c.alertas)} (${c.detectados}/${c.alertas})` },
+    { n: c.noDetectados, t: "Cambios no detectados", s: `${c.noDetectados} de ${c.cambiaron} cambios reales` }
+  ].map((k) => `<div class="card kpi"><span class="n">${k.n}</span><span class="t">${k.t}</span><span class="s">${k.s}</span></div>`).join("");
+
+  renderMatrix();
+
+  const max = 50;
+  const w = (n) => (n / max * 100).toFixed(2) + "%";
+  $("errbars").innerHTML = `
+    <div class="erow"><span class="lbl">Regla histórica</span>
+      <div class="etrack" role="img" aria-label="Regla histórica: ${c.erroresHist} errores, todos cambios no anticipados"><span class="seg-m hist" style="width:${w(c.erroresHist)}">${c.erroresHist} cambios no anticipados</span></div>
+      <strong>${c.erroresHist} errores</strong></div>
+    <div class="erow"><span class="lbl">Random forest</span>
+      <div class="etrack" role="img" aria-label="Random forest: ${c.erroresRF} errores, ${c.noDetectados} cambios no detectados y ${c.falsasAlarmas} falsas alarmas"><span class="seg-m fn" style="width:${w(c.noDetectados)}">${c.noDetectados}</span><span class="seg-m fp" style="width:${w(c.falsasAlarmas)}">${c.falsasAlarmas} falsas alarmas</span></div>
+      <strong>${c.erroresRF} errores</strong></div>`;
+  $("eleg").innerHTML = `<span><i style="background:var(--ref-fill)"></i>Cambio no anticipado (regla histórica)</span>
+    <span><i style="background:var(--accent)"></i>Cambio no detectado (random forest)</span>
+    <span><i style="background:repeating-linear-gradient(45deg,var(--accent-2),var(--accent-2) 4px,#33597d 4px,#33597d 8px)"></i>Falsa alarma (random forest)</span>`;
+  const extra = c.erroresRF - c.erroresHist;
+  $("changeMsg").innerHTML = `<strong class="k">Saldo</strong>
+    <p style="margin:0">El modelo detectó ${c.detectados} cambios que la regla histórica no podía anticipar, pero introdujo ${c.falsasAlarmas} falsas alarmas. El saldo fue de ${extra} errores adicionales (${c.erroresRF} frente a ${c.erroresHist}).</p>`;
+}
+
+function renderMatrix() {
+  const c = DATA.cambios, n = c.evaluados;
+  const rowAlert = c.detectados + c.falsasAlarmas;
+  const rowCont = c.noDetectados + c.estables;
+  const colChg = c.detectados + c.noDetectados;
+  const colNo = c.falsasAlarmas + c.estables;
+  const show = (v) => state.mode === "counts" ? `<span class="v">${v}</span>` : `<span class="v">${pct(v, n)}</span><span class="d">${v} de ${n}</span>`;
+  const tot = (v) => state.mode === "counts" ? v : `${pct(v, n)} <span class="small muted">(${v})</span>`;
+  $("matrix").innerHTML = `<caption>Detección de cambios de partido, random forest, 2020 (${n} condados)</caption>
+    <thead><tr><td></td><th scope="col">Cambió realmente</th><th scope="col">No cambió</th><th scope="col">Total</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Predijo cambio</th>
+        <td class="ok">${show(c.detectados)}<span class="l">Alerta correcta</span></td>
+        <td class="err">${show(c.falsasAlarmas)}<span class="l">Falsa alarma</span></td>
+        <td class="tot">${tot(rowAlert)}</td></tr>
+      <tr><th scope="row">Predijo continuidad</th>
+        <td class="err">${show(c.noDetectados)}<span class="l">Cambio no detectado</span></td>
+        <td class="ok">${show(c.estables)}<span class="l">Continuidad correcta</span></td>
+        <td class="tot">${tot(rowCont)}</td></tr>
+      <tr><th scope="row">Total</th>
+        <td class="tot">${tot(colChg)}</td><td class="tot">${tot(colNo)}</td><td class="tot">${tot(n)}</td></tr>
+    </tbody>`;
+  $("matrixDenom").textContent = state.mode === "counts"
+    ? "Cantidad de condados. Celdas con rayas: errores de clasificación del ganador."
+    : `Cada porcentaje se calcula sobre el total evaluado (${n} condados). Los porcentajes redondeados pueden no sumar exactamente 100%. Precisión de las alertas: ${c.detectados}/${rowAlert} = ${pct(c.detectados, rowAlert)}; sensibilidad: ${c.detectados}/${colChg} = ${pct(c.detectados, colChg)}.`;
+  document.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode)));
+}
+
+function renderStatic() {
+  $("ctxList").innerHTML = li(DATA.ctx);
+  $("sociList").innerHTML = li(DATA.socio);
+  $("limits").innerHTML = li(DATA.limites);
+  $("recNow").innerHTML = li(DATA.recomendacionActual);
+  $("recNext").innerHTML = li(DATA.recomendacionFutura);
+  $("footSource").textContent = `Fuente de los datos: ${DATA.meta.fuente}. Las cifras de este informe son resultados agregados proporcionados por el analista; no se verificaron contra el notebook ni contra los datos originales.`;
+}
+
+function renderAll() {
+  renderHero(); renderChart(); renderDetail(); renderTables(); renderChanges(); renderStatic();
+}
+
+/* Comprobaciones internas: avisan por consola si las cifras no son coherentes */
+function validate() {
+  const c = DATA.cambios, ok = [];
+  const t = (cond, msg) => { if (!cond) console.warn("Inconsistencia en los datos:", msg); ok.push(cond); };
+  t(c.detectados + c.noDetectados === c.cambiaron, "cambios reales");
+  t(c.cambiaron + c.conservaron === c.evaluados, "evaluados = cambios + conservaron");
+  t(c.detectados + c.falsasAlarmas === c.alertas, "alertas");
+  t(c.estables + c.noDetectados === c.evaluados - c.alertas, "continuidades predichas");
+  t(c.falsasAlarmas + c.noDetectados === c.erroresRF, "errores del random forest");
+  t(c.cambiaron === c.erroresHist, "errores de la regla histórica = cambios reales");
+  t(Math.round((1 - c.erroresHist / c.evaluados) * 1000) / 10 === byId("hist").accuracy, "accuracy regla histórica");
+  t(Math.round((1 - c.erroresRF / c.evaluados) * 1000) / 10 === rf().accuracy, "accuracy random forest");
+  t(c.evaluados === DATA.meta.condadosEvaluados2020, "condados evaluados");
+  return ok.every(Boolean);
+}
+
+/* Eventos */
+document.addEventListener("click", (e) => {
+  const mb = e.target.closest("[data-method]");
+  if (mb) { state.selected = mb.dataset.method; renderHero(); renderChart(); renderDetail(); return; }
+  const md = e.target.closest("[data-mode]");
+  if (md) { state.mode = md.dataset.mode; renderMatrix(); }
+});
+
+/* Impresión: abrir los desplegables para que el informe se lea completo */
+const _closed = [];
+window.addEventListener("beforeprint", () => {
+  document.querySelectorAll("details").forEach((d) => { if (!d.open) { d.open = true; _closed.push(d); } });
+});
+window.addEventListener("afterprint", () => { while (_closed.length) _closed.pop().open = false; });
+
+renderAll();
+validate();
+</script>
+</body>
+</html>
